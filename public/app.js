@@ -37,14 +37,18 @@ const el = {
   cameraList: $("#camera-list"),
   dlgHelp: $("#dlg-help"),
   btnHelp: $("#btn-help"),
+  cardAccount: $("#card-account"),
+  accountDevices: $("#account-devices"),
+  btnRefreshDevices: $("#btn-refresh-devices"),
 };
 
 const state = {
   mode: "live", // live | playback
   gridSize: 1, // 1 | 4 | 9 | 16
-  tiles: [], // { cfg, player, status: empty|loading|live|error, error, paused, recording, muted, talking, dom }
+  tiles: [], // { cfg, player, status: empty|loading|live|error, error, paused, recording, muted, dom }
   selected: 0,
   tileSize: { width: 640, height: 360 },
+  accountDevices: [],
 };
 
 /* ---------------- helpers ---------------- */
@@ -222,6 +226,123 @@ async function assignCamera(cam) {
     deviceId: cam.deviceId,
     channelId: String(Number(cam.channelId) || 0),
     code: el.inCode.value.trim(),
+    streamId: Number(el.inStreamId.value) || 0,
+  });
+}
+
+/* ---------------- account cameras ---------------- */
+
+const DEVICE_CODES_KEY = "imou-device-codes";
+function loadDeviceCodes() {
+  try {
+    return JSON.parse(localStorage.getItem(DEVICE_CODES_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+function saveDeviceCodes(map) {
+  localStorage.setItem(DEVICE_CODES_KEY, JSON.stringify(map));
+}
+function deviceCodeKey(deviceId, channelId) {
+  return `${deviceId}|${channelId}`;
+}
+function getDeviceCode(deviceId, channelId) {
+  return loadDeviceCodes()[deviceCodeKey(deviceId, channelId)] || "";
+}
+function setDeviceCode(deviceId, channelId, code) {
+  const map = loadDeviceCodes();
+  const key = deviceCodeKey(deviceId, channelId);
+  if (code) map[key] = code;
+  else delete map[key];
+  saveDeviceCodes(map);
+}
+
+async function loadAccountDevices() {
+  el.btnRefreshDevices.disabled = true;
+  el.accountDevices.innerHTML = '<div class="account-empty">Loading cameras...</div>';
+  try {
+    const data = await api("/api/devices");
+    state.accountDevices = data.devices || [];
+    log(`Loaded ${state.accountDevices.length} camera(s) from Imou account`);
+  } catch (err) {
+    el.accountDevices.innerHTML = `<div class="account-error">Failed to load cameras: ${escapeHtml(err.message)}</div>`;
+    log(`Failed to load account cameras: ${err.message}`, "err");
+  } finally {
+    el.btnRefreshDevices.disabled = false;
+  }
+  renderAccountDevices();
+}
+
+function renderAccountDevices() {
+  el.accountDevices.innerHTML = "";
+  if (!state.accountDevices.length) {
+    el.accountDevices.innerHTML = '<div class="account-empty">No cameras found in your Imou account.</div>';
+    return;
+  }
+  for (const device of state.accountDevices) {
+    const channels = Array.isArray(device.channels) ? device.channels : [];
+    const root = document.createElement("div");
+    root.className = "account-device open";
+    root.innerHTML = `
+      <div class="account-device-header">
+        <span class="toggle">&#9654;</span>
+        <span class="device-sn">${escapeHtml(device.deviceId)}</span>
+        <span class="device-meta">${channels.length} channel${channels.length === 1 ? "" : "s"}</span>
+      </div>
+      <div class="account-channels"></div>`;
+
+    const header = root.querySelector(".account-device-header");
+    header.addEventListener("click", () => root.classList.toggle("open"));
+
+    const chContainer = root.querySelector(".account-channels");
+    for (const ch of channels) {
+      const channelId = String(ch.channelId ?? 0);
+      const channelName = ch.channelName || `Channel ${channelId}`;
+      const code = getDeviceCode(device.deviceId, channelId);
+
+      const row = document.createElement("div");
+      row.className = "account-channel";
+      row.innerHTML = `
+        <span class="ch-name" title="${escapeHtml(channelName)}">
+          ${escapeHtml(channelName)}
+          <small>Ch${escapeHtml(channelId)}</small>
+        </span>
+        <input type="text" placeholder="Key" value="${escapeHtml(code)}" title="Encryption key / device password" />
+        <button class="btn btn-primary" type="button">Connect</button>`;
+
+      const input = row.querySelector("input");
+      input.addEventListener("change", () => {
+        setDeviceCode(device.deviceId, channelId, input.value.trim());
+      });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          setDeviceCode(device.deviceId, channelId, input.value.trim());
+          connectAccountCamera(device.deviceId, channelId);
+        }
+      });
+
+      row.querySelector("button").addEventListener("click", () => {
+        setDeviceCode(device.deviceId, channelId, input.value.trim());
+        connectAccountCamera(device.deviceId, channelId);
+      });
+
+      chContainer.appendChild(row);
+    }
+
+    el.accountDevices.appendChild(root);
+  }
+}
+
+function connectAccountCamera(deviceId, channelId) {
+  const code = getDeviceCode(deviceId, channelId);
+  el.inDeviceId.value = deviceId;
+  el.inChannelId.value = channelId;
+  el.inCode.value = code;
+  saveSettings();
+  startTile(state.selected, {
+    deviceId,
+    channelId,
+    code,
     streamId: Number(el.inStreamId.value) || 0,
   });
 }
@@ -871,6 +992,7 @@ async function init() {
 
   el.btnClearLog.addEventListener("click", () => (el.log.innerHTML = ""));
   el.btnHelp.addEventListener("click", () => el.dlgHelp.showModal());
+  el.btnRefreshDevices.addEventListener("click", loadAccountDevices);
 
   setupPtz();
   renderCameras();
@@ -918,6 +1040,7 @@ async function init() {
       log("Server credentials missing (.env)", "warn");
     } else {
       log(`Server ready · region API: ${config.baseUrl}${config.usingStaticToken ? " (static accessToken)" : ""}`);
+      await loadAccountDevices();
       restoreSession();
     }
   } catch (err) {

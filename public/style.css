@@ -433,3 +433,98 @@ html, body {
   font-size: 12.5px;
 }
 .help-dialog::backdrop { background: rgba(0, 0, 0, 0.55); }
+
+/* ---------- account cameras ---------- */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.section-head h2 { margin: 0; }
+
+.account-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.account-device {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.account-device-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.account-device-header:hover { background: rgba(255, 255, 255, 0.03); }
+.account-device-header .device-sn {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+}
+.account-device-header .device-meta {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.account-device-header .toggle {
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+.account-device.open .toggle { transform: rotate(90deg); }
+
+.account-channels {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px 10px;
+  border-top: 1px solid var(--border);
+}
+.account-device.open .account-channels { display: flex; }
+
+.account-channel {
+  display: grid;
+  grid-template-columns: 1fr minmax(90px, 120px) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+}
+.account-channel + .account-channel { border-top: 1px solid var(--border); }
+.account-channel .ch-name {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-channel .ch-name small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.account-channel input {
+  width: 100%;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  outline: none;
+}
+.account-channel input:focus { border-color: var(--accent); }
+.account-channel .btn { padding: 6px 10px; font-size: 12px; }
+
+.account-empty,
+.account-error {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 4px 0;
+}

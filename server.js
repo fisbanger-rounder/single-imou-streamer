@@ -65,6 +65,15 @@ app.post("/api/kit-token", async (req, res, next) => {
   }
 });
 
+app.get("/api/devices", async (req, res, next) => {
+  try {
+    const result = await client.listDevices();
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.post("/api/ptz", async (req, res, next) => {
   try {
     const deviceId = String(req.body?.deviceId || "").trim();
