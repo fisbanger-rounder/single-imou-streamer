@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Imou CCTV Streamer</title>
+    <link href="/imou-player.css" rel="stylesheet" />
+    <link href="/style.css" rel="stylesheet" />
+    <script src="/imou-player.js"></script>
+  </head>
+  <body>
+    <div id="server-banner" class="server-banner hidden"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1>Imou CCTV Streamer</h1>
+      </div>
+      <div class="topbar-right">
+        <span id="conn-pill" class="pill pill-idle">Idle</span>
+        <button id="btn-help" class="btn btn-ghost btn-sm" type="button" title="Setup help">?</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="stage-col">
+        <nav class="mode-tabs" role="tablist">
+          <button id="tab-live" class="tab active" data-mode="live" type="button">Live</button>
+          <button id="tab-playback" class="tab" data-mode="playback" type="button">Playback</button>
+        </nav>
+
+        <div class="grid-toolbar card">
+          <div class="grid-sizes" role="group" aria-label="Window layout">
+            <button class="grid-btn active" data-grid="1" type="button" title="Single view">1</button>
+            <button class="grid-btn" data-grid="4" type="button" title="2 &times; 2 grid">4</button>
+            <button class="grid-btn" data-grid="9" type="button" title="3 &times; 3 grid">9</button>
+            <button class="grid-btn" data-grid="16" type="button" title="4 &times; 4 grid">16</button>
+          </div>
+          <span id="grid-info" class="stream-info"></span>
+          <button id="btn-stop-all" class="btn btn-danger btn-sm" type="button" title="Stop every window">Stop all</button>
+        </div>
+
+        <div class="grid-shell" id="grid-shell"></div>
+
+        <div class="transport card">
+          <button id="btn-play" class="btn" type="button" title="Pause / resume selected window" disabled>
+            <span id="btn-play-label">&#10074;&#10074; Pause</span>
+          </button>
+          <button id="btn-snap" class="btn" type="button" title="Screenshot (selected window)" disabled>&#9974; Snapshot</button>
+          <button id="btn-record" class="btn" type="button" title="Record selected window (MP4 download)" disabled><span id="btn-record-label">&#9679; Record</span></button>
+          <button id="btn-mute" class="btn" type="button" title="Toggle sound (selected window)" disabled><span id="btn-mute-label">&#128266; Sound on</span></button>
+          <button id="btn-talk" class="btn btn-talk" type="button" title="Push to talk on selected window (hold)" disabled>
+            <span id="btn-talk-label">&#127908; Hold to talk</span>
+          </button>
+          <button id="btn-fullscreen" class="btn" type="button" title="Fullscreen (selected window)" disabled>&#x26F6; Fullscreen</button>
+          <span id="stream-info" class="stream-info"></span>
+        </div>
+      </section>
+
+      <aside class="side-col">
+        <section class="card">
+          <h2>Device</h2>
+          <label class="field">
+            <span>Device SN</span>
+            <input id="in-deviceId" type="text" placeholder="e.g. 7H0B18PAXXXXXXX" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Channel</span>
+            <input id="in-channelId" type="number" min="0" step="1" value="0" />
+          </label>
+          <label class="field">
+            <span>Encryption key <small>(device password / SN if unused)</small></span>
+            <input id="in-code" type="text" placeholder="Only if video encryption is enabled" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span>Quality</span>
+            <select id="in-streamId">
+              <option value="0">HD</option>
+              <option value="1">SD</option>
+            </select>
+          </label>
+          <div class="row">
+            <button id="btn-connect" class="btn btn-primary grow" type="button">Connect</button>
+            <button id="btn-disconnect" class="btn btn-danger" type="button" disabled>Stop</button>
+          </div>
+          <p class="hint">Connects into the <b>selected window</b> (highlighted frame). Click any window to select it.</p>
+        </section>
+
+        <section class="card">
+          <h2>Saved cameras</h2>
+          <ul id="camera-list" class="camera-list"></ul>
+          <p class="hint">Click a camera to stream it into the selected window. Click &#10005; to forget it. Saved automatically when you connect.</p>
+        </section>
+
+        <section class="card" id="card-playback" hidden>
+          <h2>Playback source &amp; time</h2>
+          <label class="field">
+            <span>Record type</span>
+            <select id="in-recordType">
+              <option value="cloud">Cloud recording</option>
+              <option value="localRecord">Local recording (SD card)</option>
+              <option value="nvrDisk">NVR disk</option>
+            </select>
+          </label>
+          <div class="field-pair">
+            <label class="field">
+              <span>From</span>
+              <input id="in-beginTime" type="datetime-local" step="1" />
+            </label>
+            <label class="field">
+              <span>To</span>
+              <input id="in-endTime" type="datetime-local" step="1" />
+            </label>
+          </div>
+          <label class="field">
+            <span>Speed</span>
+            <select id="in-speed">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+              <option value="4">4x</option>
+              <option value="8">8x</option>
+              <option value="16">16x</option>
+              <option value="32">32x</option>
+            </select>
+          </label>
+          <p class="hint">The player timeline and calendar also let you jump within the selected range.</p>
+        </section>
+
+        <section class="card">
+          <h2>PTZ control</h2>
+          <div class="ptz-wrap">
+            <div class="ptz-pad" id="ptz-pad">
+              <button class="ptz-btn" data-op="4" title="Up-left" type="button">&#10554;</button>
+              <button class="ptz-btn" data-op="0" title="Up" type="button">&#9650;</button>
+              <button class="ptz-btn" data-op="6" title="Up-right" type="button">&#10555;</button>
+              <button class="ptz-btn" data-op="2" title="Left" type="button">&#9664;</button>
+              <button class="ptz-btn ptz-center" data-op="10" title="Stop" type="button">&#9632;</button>
+              <button class="ptz-btn" data-op="3" title="Right" type="button">&#9654;</button>
+              <button class="ptz-btn" data-op="5" title="Down-left" type="button">&#11041;</button>
+              <button class="ptz-btn" data-op="1" title="Down" type="button">&#9660;</button>
+              <button class="ptz-btn" data-op="7" title="Down-right" type="button">&#11042;</button>
+            </div>
+            <div class="ptz-zoom">
+              <button class="ptz-btn ptz-zoom-btn" data-op="8" title="Zoom in" type="button">&#128269;&#43;</button>
+              <button class="ptz-btn ptz-zoom-btn" data-op="9" title="Zoom out" type="button">&#128269;&#8722;</button>
+            </div>
+          </div>
+          <label class="field">
+            <span>Move duration: <b id="ptz-duration-label">500</b> ms <small>(hold to keep moving)</small></span>
+            <input id="ptz-duration" type="range" min="200" max="2000" step="100" value="500" />
+          </label>
+          <p class="hint">Requires a camera with pan/tilt. Controls the <b>selected window</b>. Hold a button for continuous movement.</p>
+        </section>
+
+        <section class="card log-card">
+          <div class="log-head">
+            <h2>Event log</h2>
+            <button id="btn-clear-log" class="btn btn-ghost btn-sm" type="button">Clear</button>
+          </div>
+          <ul id="log" class="log-list"></ul>
+        </section>
+      </aside>
+    </main>
+
+    <dialog id="dlg-help" class="help-dialog">
+      <h2>Setup checklist</h2>
+      <ol>
+        <li>Create an app at <a href="https://open.imoulife.com" target="_blank" rel="noopener">open.imoulife.com</a> (or open.imou.com for China) to get <code>App ID</code> / <code>App Secret</code>.</li>
+        <li>Bind your camera serial + verification code under <em>My Resources</em>.</li>
+        <li>Put credentials in <code>.env</code> next to <code>server.js</code> (copy <code>.env.example</code>) and pick your region&rsquo;s base URL.</li>
+        <li>Restart the server, enter the device SN here and press Connect.</li>
+      </ol>
+      <p class="hint">Two-way talk needs microphone permission and a secure origin (localhost or HTTPS). PTZ needs a pan/tilt model such as Ranger series.</p>
+      <form method="dialog"><button class="btn btn-primary">Got it</button></form>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

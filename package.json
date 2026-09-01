@@ -1,0 +1,18 @@
+{
+  "name": "imou-cctv-streaming-viewer",
+  "version": "1.0.0",
+  "description": "Imou CCTV web streamer - live view, playback, PTZ control and two-way talk built on the Imou light-app player SDK",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
