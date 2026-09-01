@@ -582,7 +582,7 @@ async function startTile(i, cfg) {
       streamId: Number(cfg.streamId) || 0,
       muted: t.muted,
       code: cfg.code || "",
-      WasmLibPath: "/WasmLib/",
+      WasmLibPath: "/",
       dpr: window.devicePixelRatio || 0,
       templateMode: "pc",
       threadMode: "singleThread",
