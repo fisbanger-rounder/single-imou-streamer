@@ -585,7 +585,7 @@ async function startTile(i, cfg) {
       WasmLibPath: "/WasmLib/",
       dpr: window.devicePixelRatio || 0,
       templateMode: "pc",
-      threadMode: "multiThread",
+      threadMode: "singleThread",
       controls: true,
       controlsConfig: controlsFor(isPlayback ? "playback" : "live"),
       title: labelFor(cfg),
